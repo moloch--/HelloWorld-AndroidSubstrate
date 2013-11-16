@@ -1,34 +1,37 @@
 package com.bishopfox.helloworldsubstrate;
 
-import java.lang.reflect.Method;
+import java.lang.reflect.Constructor;
+
+import android.util.Log;
+
 import com.saurik.substrate.MS;
 
 public class Main {
-	static void initialize() {
-		MS.ClassLoadHook colorHook = new MS.ClassLoadHook() {
+	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	static void initialize() throws Throwable {
+		
+		Log.d("Substrate", "Initializing ...");
 
-			@SuppressWarnings({ "unchecked", "rawtypes" })
-			public void classLoaded(Class<?> resources) {
+		// Get the class we want to hook
+		Class _class = Class.forName("java.net.InetSocketAddress");
 
-				Method getColor;  // Find the original function
-				try {
-					getColor = resources.getMethod("getColor", Integer.TYPE);
-				} catch (NoSuchMethodException e) {
-					getColor = null;
-				}
+		// Get the method we want to hook, in this case it's the constructor
+		Constructor method = _class.getConstructor(String.class, Integer.TYPE);
 
-				if (getColor != null) {
-					final MS.MethodPointer old = new MS.MethodPointer();
-					MS.hookMethod(resources, getColor, new MS.MethodHook() {
-						// Our new implementation
-						public Object invoked(Object resources, Object... args) throws Throwable {
-							int color = (Integer) old.invoke(resources, args);
-							return color & ~0x0000ffff | 0x00ff00ff;
-						}
-					}, old);
-				}
-			}
-		};
-		MS.hookClassLoad("android.content.res.Resources", colorHook);
+		// Place our hook 
+		MS.hookMethod(_class, method, new MS.MethodAlteration() {
+			
+			// Our modified version of the hooked method
+		    public Object invoked(Object _this, Object... args) throws Throwable
+		    {
+		        String host = (String) args[0];
+		        int port = (Integer) args[1];
+
+		        Log.d("Substrate", "Socket connection to -> " + host.toString());
+
+		        return invoke(_this, host, port);
+		    }
+		});
 	}
 }
